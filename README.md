@@ -17,4 +17,8 @@ docker build -t <tag-name> -f php-fpm/8.1.Dockerfile .
 docker image build -t 1.0 -f php-fpm/8.1.Dockerfile . && \
 docker tag 1.0:latest akarabudka/php-fpm:8.1 && \
 docker push akarabudka/php-fpm:8.1
+
+docker image build -t 1.0 -f php-fpm/8.2.Dockerfile . && \
+docker tag 1.0:latest akarabudka/php-fpm:8.2 && \
+docker push akarabudka/php-fpm:8.2
 ```

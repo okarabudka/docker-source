@@ -47,7 +47,7 @@ RUN mkdir $APACHE_CONFDIR/ssl && \
             /usr/local/bin/copy-ssh-keys \
             /usr/local/bin/add-host-alias \
             /usr/local/bin/set-puid && \
-    mv /var/www/html /var/www/www && \
+    mv /var/www/html /var/www/public && \
     a2enmod rewrite ssl headers expires proxy vhost_alias
 
 # User
