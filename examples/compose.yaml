@@ -1,0 +1,57 @@
+# Nginx + PHP-FPM (dev image) + MariaDB + Mailpit.
+#   docker compose -f examples/compose.yaml up
+# App: http://localhost:8080, Mailpit: http://localhost:8025
+# The php service is built from this repository when the image is not available locally.
+name: php-example
+
+services:
+  web:
+    image: nginx:1.30-alpine
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./app:/var/www/html:ro
+    depends_on:
+      php:
+        condition: service_healthy
+
+  php:
+    image: ghcr.io/okarabudka/php:8.5-fpm-dev
+    build:
+      context: ..
+      dockerfile: php/Dockerfile
+      target: dev
+      args:
+        PHP_VERSION: "8.5"
+        VARIANT: fpm
+        OS: trixie
+    volumes:
+      - ./app:/var/www/html
+    environment:
+      DATABASE_DSN: "mysql:host=db;dbname=app;charset=utf8mb4"
+      DATABASE_USER: app
+      DATABASE_PASSWORD: app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: app
+      MARIADB_USER: app
+      MARIADB_PASSWORD: app
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
