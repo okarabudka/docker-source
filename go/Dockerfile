@@ -1,22 +1,31 @@
-FROM golang:1.22-alpine AS builder
-LABEL authors="alexander.karabudka"
+# syntax=docker/dockerfile:1
 
-WORKDIR /usr/local/src
+# Multi-stage build for a Go HTTP service: static binary on a distroless, non-root runtime.
+#   docker build -f go/Dockerfile -t go-example go/example
+FROM golang:1.27-alpine AS build
 
-RUN apk --no-cache add bash git make gcc gettext musl-dev
+WORKDIR /src
+ENV CGO_ENABLED=0
 
-#dependencies
-COPY ["app/go.mod", "app/go.sum", "./"]
-RUN go mod download
+COPY go.mod go.sum* ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
-#build
-COPY app ./
-RUN go build -o ./bin/app cmd/app/main.go
+COPY . .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go build -trimpath -ldflags="-s -w" -o /out/app .
 
-FROM alpine AS runner
+FROM gcr.io/distroless/static-debian13:nonroot
 
-COPY --from=builder /usr/local/src/bin/app /
-COPY congigs/config.yaml /congig.yaml
+COPY --from=build /out/app /app
 
-CMD ["/app"]
+# 65532 is the "nonroot" user of distroless images
+USER 65532:65532
+EXPOSE 8080
 
+# distroless has no shell or curl; the binary probes itself
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --start-interval=1s \
+    CMD ["/app", "-healthcheck"]
+
+ENTRYPOINT ["/app"]
