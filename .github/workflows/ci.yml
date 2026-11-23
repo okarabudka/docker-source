@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: hadolint and shellcheck
+        run: make lint
+      - name: gitleaks
+        run: docker run --rm -v "$PWD:/repo:ro" ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo --redact --verbose
+      - name: Bake definition
+        run: docker buildx bake --print > /dev/null
+
+  php:
+    needs: lint
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["8.1", "8.2", "8.3", "8.4", "8.5"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      # PECL downloads fail now and then; one retry continues from the cache.
+      - name: Build (amd64)
+        id: build
+        continue-on-error: true
+        uses: docker/bake-action@v6
+        env:
+          PHP_VERSIONS: ${{ matrix.version }}
+          GHA_CACHE: "1"
+        with:
+          source: .
+          load: true
+      - name: Build (amd64, retry)
+        if: steps.build.outcome == 'failure'
+        uses: docker/bake-action@v6
+        env:
+          PHP_VERSIONS: ${{ matrix.version }}
+          GHA_CACHE: "1"
+        with:
+          source: .
+          load: true
+      - name: Smoke tests
+        run: make test VERSIONS=${{ matrix.version }}
+
+  php-arm64:
+    # Native arm64 runner; only on main to keep pull requests fast.
+    if: github.event_name == 'push'
+    needs: lint
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - name: Build 8.5 (arm64)
+        uses: docker/bake-action@v6
+        env:
+          PHP_VERSIONS: "8.5"
+        with:
+          source: .
+          load: true
+      - name: Smoke tests
+        run: make test VERSIONS=8.5
+
+  go:
+    needs: lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build and test the Go example
+        run: make test-go
