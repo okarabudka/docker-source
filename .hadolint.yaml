@@ -1,0 +1,4 @@
+# Distribution packages are not pinned: images track the security updates of their base image.
+ignored:
+  - DL3008
+  - DL3018
