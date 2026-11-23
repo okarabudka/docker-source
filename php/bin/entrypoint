@@ -1,0 +1,18 @@
+#!/bin/sh
+# Runs the official docker-php-entrypoint as the "app" user.
+# Started as root (docker run --user root), it first applies PUID/PGID to "app",
+# so files written to bind mounts belong to the host user, then drops privileges.
+set -eu
+
+if [ "$(id -u)" = "0" ]; then
+    if [ -n "${PGID:-}" ] && [ "${PGID}" != "$(id -g app)" ]; then
+        groupmod -o -g "${PGID}" app
+    fi
+    if [ -n "${PUID:-}" ] && [ "${PUID}" != "$(id -u app)" ]; then
+        usermod -o -u "${PUID}" app
+    fi
+    chown app:app /home/app
+    exec setpriv --reuid=app --regid=app --init-groups docker-php-entrypoint "$@"
+fi
+
+exec docker-php-entrypoint "$@"

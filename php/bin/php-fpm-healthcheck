@@ -1,0 +1,11 @@
+#!/bin/sh
+# Asks PHP-FPM for its ping page over FastCGI; healthy when it answers "pong".
+set -eu
+
+response=$(SCRIPT_NAME=/ping SCRIPT_FILENAME=/ping REQUEST_METHOD=GET \
+    cgi-fcgi -bind -connect 127.0.0.1:9000)
+
+case "${response}" in
+    *pong*) exit 0 ;;
+    *) exit 1 ;;
+esac
