@@ -39,7 +39,7 @@ services:
         condition: service_healthy
 
   db:
-    image: mariadb:11.4
+    image: mariadb:11.8
     environment:
       MARIADB_DATABASE: app
       MARIADB_USER: app
@@ -52,6 +52,6 @@ services:
       retries: 20
 
   mailpit:
-    image: axllent/mailpit:v1.27
+    image: axllent/mailpit:v1.34
     ports:
       - "${MAILPIT_PORT:-8025}:8025"
