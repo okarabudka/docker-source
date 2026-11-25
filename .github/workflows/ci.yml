@@ -17,7 +17,7 @@ jobs:
   lint:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: hadolint and shellcheck
@@ -35,13 +35,13 @@ jobs:
       matrix:
         version: ["8.1", "8.2", "8.3", "8.4", "8.5"]
     steps:
-      - uses: actions/checkout@v5
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
       # PECL downloads fail now and then; one retry continues from the cache.
       - name: Build (amd64)
         id: build
         continue-on-error: true
-        uses: docker/bake-action@v6
+        uses: docker/bake-action@v7
         env:
           PHP_VERSIONS: ${{ matrix.version }}
           GHA_CACHE: "1"
@@ -50,7 +50,7 @@ jobs:
           load: true
       - name: Build (amd64, retry)
         if: steps.build.outcome == 'failure'
-        uses: docker/bake-action@v6
+        uses: docker/bake-action@v7
         env:
           PHP_VERSIONS: ${{ matrix.version }}
           GHA_CACHE: "1"
@@ -66,10 +66,10 @@ jobs:
     needs: lint
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v5
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
       - name: Build 8.5 (arm64)
-        uses: docker/bake-action@v6
+        uses: docker/bake-action@v7
         env:
           PHP_VERSIONS: "8.5"
         with:
@@ -82,6 +82,6 @@ jobs:
     needs: lint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Build and test the Go example
         run: make test-go
