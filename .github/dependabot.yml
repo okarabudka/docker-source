@@ -4,11 +4,24 @@ updates:
     directories: ["/php", "/go"]
     schedule:
       interval: weekly
+    groups:
+      all:
+        patterns: ["*"]
+  # MariaDB stays on an LTS release: major upgrades are deliberate.
   - package-ecosystem: docker-compose
     directory: /examples
     schedule:
       interval: weekly
+    groups:
+      all:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: mariadb
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      all:
+        patterns: ["*"]
